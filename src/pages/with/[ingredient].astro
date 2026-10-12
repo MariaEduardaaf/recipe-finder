@@ -1,0 +1,130 @@
+---
+// Recipes with X (specs/recipes-with.md): 30 collection pages, one per top ingredient. Every card is in the HTML
+// (24 shown, the rest revealed by "Show more"; all of them without JavaScript).
+import Base from '../../layouts/Base.astro';
+import Breadcrumbs from '../../components/ui/Breadcrumbs.astro';
+import Button from '../../components/ui/Button.astro';
+import Chip from '../../components/ui/Chip.astro';
+import AdSlot from '../../components/ui/AdSlot.astro';
+import RelatedTools from '../../components/ui/RelatedTools.astro';
+import { breadcrumbJsonLd, type Crumb } from '../../components/ui/jsonld';
+import { recipes, topIngredients, slugify, counted, kind, photo, MAIN, upper, display, UPDATED } from '../../components/recipes/data';
+import { cardHTML, SPRITE, demoted } from '../../components/recipes/card';
+import { RECIPE_DISPLAY } from '../../data/recipe-display';
+import { SITE, SIBLINGS } from '../../site';
+import '../../components/recipes/recipes.css';
+
+export function getStaticPaths() {
+  return topIngredients(30).map((i) => ({ params: { ingredient: slugify(i.key) }, props: { key: i.key } }));
+}
+const { key } = Astro.props as { key: string };
+const entry = RECIPE_DISPLAY[key];
+if (!entry) throw new Error(`RECIPE_DISPLAY has no name and tip for "${key}" (src/data/recipe-display.ts).`);
+const name = entry.name;
+
+// Main dishes first, then fewer ingredients, then lower id. Never A to Z.
+const list = recipes
+  .filter((r) => r.keys.includes(key))
+  .sort((a, b) => demoted(a.id) - demoted(b.id) || Number(MAIN.has(b.category)) - Number(MAIN.has(a.category)) || counted(a).length - counted(b).length || +a.id - +b.id);
+const N = list.length;
+const PAGE = 24;
+
+const tally = (values: string[]) => {
+  const m = new Map<string, number>();
+  for (const v of values) m.set(v, (m.get(v) ?? 0) + 1);
+  return [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+};
+const and = (xs: string[]) => (xs.length < 3 ? xs.join(' and ') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+const areas = tally(list.map((r) => r.area).filter((a) => a !== 'Unknown'));
+const common = areas.filter(([, n]) => n >= 2).slice(0, 3).map(([a]) => a);
+const partners = tally(list.flatMap((r) => counted(r).filter((k) => k !== key))).map(([k]) => k);
+const pages = new Set(topIngredients(30).map((i) => i.key));
+const chips = partners.filter((k) => pages.has(k)).slice(0, 6);
+const intro = [
+  `${N} recipes in our collection use ${name}${areas.length >= 2 ? `, from ${areas.length} cuisines` : ''}.`,
+  common.length >= 2 ? `${and(common)} dishes come up most.` : '',
+  partners.length >= 2 ? `${upper(and(partners.slice(0, 3).map(display)))} show up most often alongside ${name}.` : '',
+].filter(Boolean).join(' ');
+
+const titleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+const top2 = areas.slice(0, 2).map(([a]) => a);
+const description = `${N} recipes that use ${name}${top2.length ? `, from ${and(top2)} dishes and more` : ''}. Pick what else you have and see what you can cook. Free, no account.`;
+
+const cards = list.map((r, i) => cardHTML({ title: r.title, kind: kind(r), url: r.sourceUrl, img: photo(r) }, { count: counted(r).length }, i < 4)
+  .replace(/^<li>/, i < PAGE ? '<li>' : '<li hidden>')).join('');
+const left = N - PAGE;
+const moreLabel = left > PAGE ? `Show ${PAGE} more recipes` : left === 1 ? 'Show the last recipe' : `Show the last ${left} recipes`;
+
+const crumbs: Crumb[] = [{ label: 'Home', href: '/' }, { label: 'Recipe finder', href: '/' }, { label: `Recipes with ${name}` }];
+const itemList = {
+  // The first 30 in page order: enough for the list's rich result, and it keeps the largest page (garlic) under
+  // its 250 KB budget (RW-12; all 297 cost 42 KB).
+  '@context': 'https://schema.org', '@type': 'ItemList', name: `Recipes with ${name}`, numberOfItems: Math.min(N, 30),
+  itemListElement: list.slice(0, 30).map((r, i) => ({ '@type': 'ListItem', position: i + 1, url: r.sourceUrl, name: r.title })),
+};
+const updated = new Date(`${UPDATED}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+---
+<Base
+  title={`${N} Recipes With ${titleCase(name)} | ${SITE.name} Recipe Finder`}
+  description={description}
+  path={`/with/${slugify(key)}/`}
+  jsonLd={[itemList, breadcrumbJsonLd(crumbs)]}
+  prototypeNotice="recipe data uses TheMealDB’s free test key. A paid key is needed before launch."
+>
+  <div class="container">
+    <Breadcrumbs items={crumbs} />
+    <h1>Recipes with {name}</h1>
+    <p class="rw-intro">{intro}</p>
+    <div class="rw-cta">
+      <Button variant="primary" href={`/?add=${encodeURIComponent(key)}`}>Start with {name}</Button>
+      <p class="rw-helper">Adds {name} to your kitchen in the recipe finder.</p>
+    </div>
+
+    <section class="rw-results" aria-labelledby="results-title">
+      <h2 class="sr-only" id="results-title">Recipes with {name}</h2>
+      <p class="rw-status">{N > PAGE ? <><span class="js-only" id="rw-status">Showing {PAGE} of {N}</span><span class="no-js-only">Showing all {N}</span></> : <>Showing all {N}</>}</p>
+      <Fragment set:html={SPRITE} />
+      <ul class="rgrid rgrid--4" id="rw-grid" data-total={N} set:html={cards}></ul>
+      <noscript><style>.rw-results .rgrid > li[hidden] { display: block !important; }</style></noscript>
+      {N > PAGE && <Button variant="secondary" class="rw-more js-only" id="rw-more">{moreLabel}</Button>}
+    </section>
+
+    <div class="rw-sections">
+      <section class="section" aria-labelledby="partners">
+        <h2 id="partners">Often cooked with {name}</h2>
+        <ul class="chips">{chips.map((k) => <li><Chip kind="link" label={upper(display(k))} href={`/with/${slugify(k)}/`} /></li>)}</ul>
+        <p><a class="hit" href="/#browse">Browse all ingredients</a></p>
+      </section>
+      <AdSlot variant="inline" id="recipes-with-1" />
+      <AdSlot variant="leaderboard" id="recipes-with-1-wide" />
+      <section class="section" aria-labelledby="tip">
+        <h2 id="tip">A tip for cooking with {name}</h2>
+        <p>{entry.tip}</p>
+      </section>
+      <section class="section" aria-labelledby="about">
+        <h2 id="about">About these recipes</h2>
+        <p>Recipes come from TheMealDB and open on the site that published them. We never copy their instructions. Salt, pepper, oil and water aren’t counted as ingredients. See <a href="/#how-it-works">how the recipe finder works</a>.</p>
+        <p class="byline">Last updated <time datetime={UPDATED}>{updated}</time>.</p>
+      </section>
+      <RelatedTools items={SIBLINGS} />
+    </div>
+  </div>
+
+  <script>
+    // "Show more" reveals the next 24 server-rendered cards and moves focus to the first of them (DS 4.8).
+    const PAGE = 24;
+    const grid = document.getElementById('rw-grid')!;
+    const more = document.getElementById('rw-more');
+    const total = Number(grid.dataset.total);
+    more?.addEventListener('click', () => {
+      const hidden = grid.querySelectorAll<HTMLLIElement>(':scope > li[hidden]');
+      const batch = [...hidden].slice(0, PAGE);
+      batch.forEach((li) => { li.hidden = false; });
+      const left = hidden.length - batch.length;
+      document.getElementById('rw-status')!.textContent = left ? `Showing ${total - left} of ${total}` : `Showing all ${total}`;
+      batch[0]?.querySelector('a')?.focus();
+      if (!left) more.remove();
+      else more.querySelector('span')!.textContent = left > PAGE ? `Show ${PAGE} more recipes` : left === 1 ? 'Show the last recipe' : `Show the last ${left} recipes`;
+    });
+  </script>
+</Base>

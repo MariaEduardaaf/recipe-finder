@@ -1,0 +1,36 @@
+// Display name and one cooking tip per ingredient page.
+// One entry per /recipes/with/[ingredient]/ page (the top 30 ingredients). `name` is how the ingredient reads in a
+// sentence ("Recipes with eggs"); `tip` is one hand-written, practical sentence (recipes-with 8). Food-safety
+// temperatures come from USDA guidance only; no brand names, no health claims. Typographic apostrophes (CRAFT-07).
+export const RECIPE_DISPLAY: Record<string, { name: string; tip: string }> = {
+  garlic: { name: 'garlic', tip: 'Garlic burns fast, so add it after onions have softened, not at the start.' },
+  onion: { name: 'onions', tip: 'Onions turn sweet the longer they cook, so give them at least 10 minutes over medium heat before the rest goes in.' },
+  egg: { name: 'eggs', tip: 'Eggs at room temperature mix more evenly into batters, so take them out of the fridge 30 minutes before baking.' },
+  butter: { name: 'butter', tip: 'Softened butter for baking should dent when pressed but still hold its shape; butter that looks shiny or greasy is too warm and makes cookies spread.' },
+  sugar: { name: 'sugar', tip: 'Caramel keeps darkening after it leaves the heat, so take it off when it’s a shade lighter than you want.' },
+  flour: { name: 'flour', tip: 'Spoon flour into the measuring cup and level it off; scooping straight from the bag packs it down, so you use more than the recipe means.' },
+  milk: { name: 'milk', tip: 'Warm milk over medium-low heat and stir often, because it scorches on the bottom of the pan and boils over in seconds.' },
+  tomato: { name: 'tomatoes', tip: 'Keep tomatoes out of the fridge until they’re ripe, since cold stops them ripening and dulls their flavor.' },
+  parsley: { name: 'parsley', tip: 'Flat-leaf parsley has more flavor for cooking than curly parsley, and both stay bright green when added at the end.' },
+  cilantro: { name: 'cilantro', tip: 'Chop the tender cilantro stems along with the leaves, and add it at the end, since heat fades its flavor fast.' },
+  potato: { name: 'potatoes', tip: 'Start potatoes in cold salted water, so the outside doesn’t turn mushy before the middle is cooked.' },
+  carrot: { name: 'carrots', tip: 'Cut carrots into pieces of the same size so they cook evenly; roasting brings out more of their sweetness than boiling.' },
+  'green onion': { name: 'green onions', tip: 'Use both parts of green onions: the white ends can cook from the start, and the green tops go in at the end.' },
+  chicken: { name: 'chicken', tip: 'Cook chicken until the thickest part reaches 165°F; a thermometer is the only reliable test.' },
+  'bell pepper': { name: 'bell peppers', tip: 'Green bell peppers are picked before they ripen, so they taste more bitter than red, yellow or orange ones; swap colors with that in mind.' },
+  ginger: { name: 'ginger', tip: 'Peel ginger with the edge of a spoon, which scrapes off the thin skin and follows the bumps better than a knife.' },
+  cinnamon: { name: 'cinnamon', tip: 'Ground cinnamon fades with time: if the jar barely smells when you open it, it won’t taste of much either.' },
+  'bay leaf': { name: 'bay leaves', tip: 'Take bay leaves out before serving, because they stay tough and sharp-edged even after hours of cooking.' },
+  'soy sauce': { name: 'soy sauce', tip: 'Soy sauce brings plenty of salt, so add it first and taste before reaching for the salt shaker.' },
+  'baking powder': { name: 'baking powder', tip: 'Test old baking powder by stirring a teaspoon into hot water: if it doesn’t fizz right away, replace it.' },
+  cumin: { name: 'cumin', tip: 'Warm cumin in the hot oil for about 30 seconds before adding the rest, so it tastes nutty instead of dusty.' },
+  lemon: { name: 'lemons', tip: 'Zest lemons before you squeeze them, and roll them firmly on the counter first to get more juice out.' },
+  chili: { name: 'chili peppers', tip: 'Most of a chili pepper’s heat sits in the pale ribs and seeds, so remove them for a milder dish, and wash your hands after.' },
+  lime: { name: 'limes', tip: 'Add lime juice at the end of cooking, because long simmering dulls its fresh, sour taste.' },
+  paprika: { name: 'paprika', tip: 'Paprika scorches quickly and turns bitter, so stir it in with some liquid or with the pan off the heat.' },
+  'heavy cream': { name: 'heavy cream', tip: 'Whip heavy cream straight from the fridge and stop at soft peaks; a little longer turns it grainy.' },
+  thyme: { name: 'thyme', tip: 'Strip fresh thyme by pulling each stem through your fingers from the top down, or add whole sprigs and lift them out before serving.' },
+  'tomato paste': { name: 'tomato paste', tip: 'Fry tomato paste in the oil for a minute or two until it darkens, which takes away its raw taste and adds depth.' },
+  'chicken stock': { name: 'chicken stock', tip: 'Store-bought chicken stock is often salty already, so taste the dish before you add any salt.' },
+  'vanilla extract': { name: 'vanilla extract', tip: 'Stir vanilla extract into custards and sauces after they come off the heat, since long cooking drives off its aroma.' },
+};

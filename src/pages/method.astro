@@ -1,0 +1,64 @@
+---
+// site-pages 8.5. Steps mirror each tool's "How it works" (sleep.md, nap.md, wifi-city.md 8 and 10.1, recipes.md).
+// Every tool's "How it works" links here. "Reviewed by" only with a real SITE.editor.
+import ContentPage from '../layouts/ContentPage.astro';
+import SourceList, { type Source } from '../components/ui/SourceList.astro';
+import ExtLink from '../components/ui/ExtLink.astro';
+import { SITE } from '../site';
+
+const toc = [
+  { id: 'standards', label: 'Our standards' },
+  { id: 'recipes', label: 'Recipe finder' },
+  { id: 'corrections', label: 'Corrections' },
+];
+const H = Object.fromEntries(toc.map((t) => [t.id, t.label])); // headings and "On this page" share one list
+
+
+const recipeSources: Source[] = [
+  { title: 'TheMealDB', href: 'https://www.themealdb.com/' },
+  { title: 'The publisher named on each recipe card' },
+];
+---
+<ContentPage
+  title={`How the Recipe Finder Works | ${SITE.name}`}
+  description={`The method and sources behind the recipe finder, and what it can’t know.`}
+  path="/method/"
+  h1="How the recipe finder works"
+  lede="How recipes are matched to your kitchen, where they come from, and what the finder can’t know."
+  updated="2026-10-12"
+  reviewedBy={SITE.editor}
+  toc={toc}
+>
+  <section class="section prose" aria-labelledby="standards">
+    <h2 id="standards">{H.standards}</h2>
+    <ul>
+      <li>We cite the original data set, TheMealDB, and name the publisher of every recipe.</li>
+      <li>Ads never change results. No recipe pays to appear.</li>
+      <li>We say what a tool can’t know, right next to its answer.</li>
+      <li>We fix mistakes when you tell us: <a href="/contact/">contact us</a>.</li>
+      <li>Every page shows when it was last updated.</li>
+    </ul>
+  </section>
+
+
+
+  <section class="section prose" aria-labelledby="recipes">
+    <h2 id="recipes">{H.recipes}</h2>
+    <ol>
+      <li>We read each recipe’s ingredient list from TheMealDB, a free recipe database.</li>
+      <li>We tidy up the names, so “scallions” and “spring onions” both count as green onions.</li>
+      <li>We assume you have salt, pepper, oil and water.</li>
+      <li>A recipe is ready to cook when you have everything else it needs. When exactly one thing is missing, it appears under Missing one ingredient.</li>
+      <li>Recipes open on the site that published them. We never copy their instructions.</li>
+    </ol>
+    <p>The six dishes on a first visit are hand-picked favorites, each with six ingredients or fewer.</p>
+    <p>The Diet and Leave out filters check ingredient names only. Check the full recipe for allergens.</p>
+    <p>When a recipe’s own site has gone offline, its link opens the recipe’s page on TheMealDB instead.</p>
+    <SourceList sources={recipeSources} id="recipe-sources" />
+  </section>
+
+  <section class="section prose" aria-labelledby="corrections">
+    <h2 id="corrections">{H.corrections}</h2>
+    <p>Tell us what’s wrong on the <a href="/contact/">contact page</a>, and we’ll fix it.</p>
+  </section>
+</ContentPage>

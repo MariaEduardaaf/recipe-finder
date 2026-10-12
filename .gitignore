@@ -1,0 +1,9 @@
+node_modules
+dist
+.astro
+.DS_Store
+
+# TheMealDB data is fetched, not published: its free key is for development. Run `node scripts/fetch-recipes.mjs` before building.
+src/data/recipes/recipes.json
+src/data/recipes/ingredient-index.json
+.wrangler

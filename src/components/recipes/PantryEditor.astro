@@ -1,0 +1,49 @@
+---
+// The pantry editor (recipes spec 6.4, 6.5): one element that pantry.ts moves between the phone sheet and the
+// desktop column, so no id is ever duplicated. Shelves other than "Most used" fill in when first opened.
+import TextField from '../ui/TextField.astro';
+import Button from '../ui/Button.astro';
+import Chip from '../ui/Chip.astro';
+import InlineStatus from '../ui/InlineStatus.astro';
+import Icon from '../ui/Icon.astro';
+import { chipHTML } from './card';
+import { ingredients, packs, upper } from './data';
+
+const ORDER = ['Vegetables', 'Meat & poultry', 'Fish & seafood', 'Dairy & eggs', 'Pantry & baking', 'Fruit', 'Herbs & spices', 'Sauces & condiments', 'Other'];
+const onShelf = ingredients.filter((i) => i.count >= 6); // most used first, inside every shelf too
+const shelves = [
+  { name: 'Most used', keys: onShelf.slice(0, 20).map((i) => i.key), open: true },
+  ...ORDER.map((g) => ({ name: g, keys: onShelf.filter((i) => i.group === g).map((i) => i.key), open: false })),
+].filter((s) => s.keys.length);
+const packKeys = JSON.stringify(Object.fromEntries(packs.map((p) => [p.name, p.keys])));
+---
+<div class="pantry" id="pantry" data-packs={packKeys}>
+  <form class="pantry__add" data-add novalidate>
+    <TextField id="add" label="Add an ingredient" placeholder="e.g. chicken, rice" autocomplete="off" list="rf-ingredients" enterkeyhint="done">
+      <Button slot="after" variant="primary" type="submit">Add</Button>
+    </TextField>
+    <InlineStatus id="add-status" class="pantry__status" />
+  </form>
+  <div class="pantry__have" id="have" hidden>
+    <div class="pantry__have-head">
+      <p class="label" id="have-label">0 ingredients</p>
+      <Button variant="danger" size="sm" id="clear">Clear kitchen</Button>
+    </div>
+    <ul class="tokens" id="tokens" aria-label="Ingredients in My kitchen"></ul>
+  </div>
+  <div class="pantry__group">
+    <p class="label" id="start-label">Start with</p>
+    <div class="chips" role="group" aria-labelledby="start-label">{packs.map((p) => <Chip kind="action" label={p.name} data-pack={p.name} />)}</div>
+  </div>
+  <div class="pantry__shelves">
+    {shelves.map((s) => (
+      <details class="disclosure pantry__shelf" open={s.open} data-keys={s.keys.join(',')}>
+        <summary class="disclosure__summary">
+          <span class="disclosure__label">{s.name}</span><span class="disclosure__value num" aria-hidden="true">0/{s.keys.length}</span><span class="sr-only">0 of {s.keys.length} selected</span><Icon name="chevron-down" class="disclosure__chevron" />
+        </summary>
+        <div class="disclosure__body chips">{s.open && <Fragment set:html={s.keys.map((k) => chipHTML(k, upper(k), false)).join('')} />}</div>
+      </details>
+    ))}
+  </div>
+  <p class="pantry__saved">Saved on this device.</p>
+</div>

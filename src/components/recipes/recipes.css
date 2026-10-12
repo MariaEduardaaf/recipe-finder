@@ -1,0 +1,103 @@
+/* Recipe finder and Recipes with X (specs/recipes.md, specs/recipes-with.md). Layout first, then the visual CSS of
+   R's own components (KitchenBar, pantry editor). Token values only; kit classes keep their kit styles. */
+
+/* An empty kitchen shows the first-visit layout; html.has-pantry (set in <head> before first paint) the filled one. */
+html.has-pantry .rf-first, html:not(.has-pantry) .rf-filled { display: none; }
+html.has-kitchen-bar { scroll-padding-top: var(--control-lg); }
+
+/* ---------- Finder: module, column, results ---------- */
+
+.rf { display: flex; flex-direction: column; }
+.rf > .notice { margin-bottom: var(--space-5); }
+.rf-col { display: none; }
+.rf-results { margin-top: var(--space-5); min-width: 0; }
+
+/* Pantry module (phones): kitchen row, add field, then starter packs on a first visit */
+.rf-kitchen { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--space-4); margin-bottom: var(--space-3); }
+.rf-kitchen__title { font-weight: var(--fw-bold); }
+.rf-kitchen__summary { grid-column: 1 / -1; margin-top: var(--space-1); font-size: var(--fs-sm); line-height: var(--lh-sm); color: var(--muted); }
+.pantry__status { margin-top: var(--space-1); }
+.rf-start { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-3); }
+.rf-start > .btn { margin-top: var(--space-1); }
+
+/* Filters, then the answer, then the grid */
+.rf-pills { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-5); }
+.rf-leave { display: flex; flex-direction: column; gap: var(--space-3); max-width: var(--measure); }
+.rf-answer__title { min-height: var(--lh-xl); }
+.rf-answer__lede { margin-top: var(--space-2); max-width: var(--measure); line-height: var(--lh-prose); color: var(--muted); }
+.rf-suggest { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-4); }
+.rf-suggest__status:empty { min-height: 0; margin-top: calc(-1 * var(--space-2)); } /* reserved only once used: the chips above re-render anyway */
+.rf-results > .rgrid { margin-top: var(--space-4); }
+.rf-more { width: 100%; margin-top: var(--space-5); }
+.rf-report { margin-top: var(--space-5); font-size: var(--fs-sm); line-height: var(--lh-sm); color: var(--muted); }
+.rf-more:not([hidden]) + .rf-report { margin-top: var(--space-4); }
+.rf-phone-only { display: contents; }
+
+@media (min-width: 64rem) {
+  .rf { display: grid; grid-template-columns: 21.25rem minmax(0, 1fr); column-gap: var(--space-7); align-items: start; } /* 340px column */
+  .rf > .notice { grid-column: 1 / -1; }
+  .rf-module { display: none; }
+  .rf-col { display: block; }
+  .rf-results { grid-column: 2; margin-top: 0; }
+  html:not(.js) .rf-results { grid-column: 1 / -1; }
+  .rf-col__title { margin-bottom: var(--space-4); }
+  .rf-results > .rgrid { margin-top: var(--space-5); }
+  .rf-more { width: auto; margin-top: var(--space-6); }
+  .rf-phone-only { display: none; }
+}
+
+/* ---------- Photo grid (both pages): 2 columns, 3 from 640px, 4 on the collection pages from 1024px ---------- */
+
+.rgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+@media (min-width: 40rem) { .rgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 64rem) {
+  .rgrid { gap: var(--space-5); }
+  .rgrid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ---------- Recipes with X ---------- */
+
+.rw-intro { margin-top: var(--space-2); max-width: var(--measure); line-height: var(--lh-prose); }
+.rw-cta { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-5); }
+.rw-cta > .btn { align-self: stretch; }
+.rw-helper, .rw-status { font-size: var(--fs-sm); line-height: var(--lh-sm); color: var(--muted); }
+.rw-results { margin-top: var(--space-5); }
+.rw-results > .rgrid { margin-top: var(--space-4); }
+.rw-more { width: 100%; margin-top: var(--space-5); }
+.rw-sections { display: flex; flex-direction: column; gap: var(--space-7); margin-top: var(--space-7); }
+.rw-sections > * { max-width: var(--measure); }
+@media (min-width: 40rem) {
+  .rw-cta { flex-direction: row; align-items: center; gap: var(--space-4); }
+  .rw-cta > .btn { align-self: auto; }
+}
+@media (min-width: 64rem) {
+  .rw-results { margin-top: var(--space-6); }
+  .rw-more { width: auto; margin-top: var(--space-6); }
+  .rw-sections { gap: var(--space-8); margin-top: var(--space-8); }
+}
+
+/* ---------- Pantry editor (R's component; in the phone sheet or the desktop column) ---------- */
+
+.pantry { display: flex; flex-direction: column; gap: var(--space-3); }
+.pantry__have, .pantry__group { display: flex; flex-direction: column; gap: var(--space-2); }
+.pantry__have-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.pantry__saved { font-size: var(--fs-sm); line-height: var(--lh-sm); color: var(--muted); }
+#add::-webkit-calendar-picker-indicator, #add-m::-webkit-calendar-picker-indicator, #leave::-webkit-calendar-picker-indicator { display: none !important; } /* datalist arrow */
+
+/* ---------- KitchenBar (DESIGN-SYSTEM 3.32): sticky over the results, no space of its own ---------- */
+
+.kitchen-bar {
+  position: sticky; top: 0; z-index: var(--z-sticky);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  min-height: var(--control-lg);
+  margin: 0 calc(-1 * var(--gutter)) calc(-1 * var(--control-lg));
+  padding: 0 var(--gutter);
+  border-bottom: var(--bw) solid var(--line);
+  background: var(--bg);
+  box-shadow: var(--shadow-1);
+}
+.kitchen-bar__label { font-weight: var(--fw-bold); }
+@media (min-width: 64rem) { .kitchen-bar { display: none; } }
+
+/* Browse: the disclosure under the top 12 chips. */
+.browse-more { margin-top: var(--space-4); }

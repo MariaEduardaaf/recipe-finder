@@ -1,0 +1,215 @@
+---
+import Disclosure from '../components/ui/Disclosure.astro';
+// The recipe finder (specs/recipes.md). Server HTML holds the six picks, the pantry module and editor, every
+// control and all content; pantry.ts matches against /recipes/data.json, fetched once.
+import ToolLayout from '../layouts/ToolLayout.astro';
+import TextField from '../components/ui/TextField.astro';
+import Button from '../components/ui/Button.astro';
+import Chip from '../components/ui/Chip.astro';
+import PillSelect from '../components/ui/PillSelect.astro';
+import InlineStatus from '../components/ui/InlineStatus.astro';
+import Sheet from '../components/ui/Sheet.astro';
+import Skeleton from '../components/ui/Skeleton.astro';
+import Icon from '../components/ui/Icon.astro';
+import AdSlot from '../components/ui/AdSlot.astro';
+import PantryEditor from '../components/recipes/PantryEditor.astro';
+import KitchenBar from '../components/recipes/KitchenBar.astro';
+import { recipes, packs, topIngredients, slugify, display, upper, counted, kind, photo, MEALS, DIETS, UPDATED } from '../components/recipes/data';
+import { PICKS } from '../components/recipes/picks';
+import { cardHTML, SPRITE } from '../components/recipes/card';
+import { faqJsonLd, type FaqItem } from '../components/ui/jsonld';
+import type { TrustItem } from '../components/ui/Trust.astro';
+import type { RelatedTool } from '../components/ui/RelatedTools.astro';
+import { esc } from '../components/ui/html';
+import { SITE, SIBLINGS } from '../site';
+import '../components/recipes/recipes.css';
+
+const byId = new Map(recipes.map((r) => [r.id, r]));
+const picks = PICKS.map((id, i) => {
+  const r = byId.get(id)!;
+  return cardHTML({ title: r.title, kind: kind(r), url: r.sourceUrl, img: photo(r) }, { count: counted(r).length }, i < 2);
+}).join('');
+
+const perArea = new Map<string, number>();
+for (const r of recipes) if (r.area !== 'Unknown') perArea.set(r.area, (perArea.get(r.area) ?? 0) + 1);
+const cuisines = [{ value: '', label: 'Any cuisine' }, ...[...perArea].sort((a, b) => a[0].localeCompare(b[0])).map(([a, n]) => ({ value: a, label: `${a} (${n})` }))];
+
+const faq: FaqItem[] = [
+  ['Why can’t I see the cooking steps here?', 'Each recipe belongs to the site that published it, so we link to it instead of copying it. The card shows which site it opens.'],
+  ['Is my kitchen saved?', 'Yes, on this device only. Nothing is sent to us. Clearing your browser data removes it.'],
+  ['An ingredient I have shows as missing. Why?', 'Recipes name ingredients in different ways. We match common alternatives, but some slip through. Add the exact name from the recipe, or tell us so we can fix the match.'],
+  ['Can I avoid an allergen?', 'Use Leave out to hide recipes that list an ingredient, and Diet for vegetarian or vegan dishes. Both check ingredient names only, so always read the full recipe on the source site.'],
+];
+// The FAQ is drawn with the kit's Faq markup by hand, because one answer links to Contact.
+const answerHtml = (a: string) => esc(a).replace('tell us', '<a href="/contact/">tell us</a>');
+
+const trust: TrustItem[] = [
+  { icon: 'circle-check', text: 'Free, no account' },
+  { icon: 'circle-check', text: 'Your kitchen is saved on this device' },
+  { icon: 'info', text: 'Recipe data from TheMealDB' },
+  { icon: 'list', text: 'How the recipe finder works', href: '#how-it-works' },
+];
+const toc = [
+  { id: 'browse', label: 'Browse recipes by ingredient' },
+  { id: 'how-it-works', label: 'How the recipe finder works' },
+  { id: 'faq', label: 'Questions people ask' },
+];
+const updated = new Date(`${UPDATED}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+---
+<ToolLayout
+  title={`What Can I Cook With What I Have? Free Recipe Finder | ${SITE.name}`}
+  description="Add the ingredients in your kitchen and see which recipes you can make right now, plus recipes missing one ingredient. Free, no account."
+  path="/"
+  h1="What can I cook with what I have?"
+  lede="Add what’s in your kitchen. Salt, pepper, oil and water are assumed."
+  trust={trust}
+  toc={toc}
+  adId="recipes-rail"
+  related={SIBLINGS}
+  jsonLd={[faqJsonLd(faq)]}
+  prototypeNotice="recipe data uses TheMealDB’s free test key. A paid key is needed before launch."
+>
+  <Fragment slot="head">
+    <script is:inline>
+      // Returning visitor, or a ?pack= / ?add= link: draw the filled layout from the first frame (spec 9, RC-13).
+      try { var p = JSON.parse(localStorage.getItem('ft-recipes-pantry') || '[]'); if ((Array.isArray(p) && p.length) || /[?&](pack|add)=/.test(location.search)) document.documentElement.classList.add('has-pantry'); } catch (e) {}
+    </script>
+    <link rel="preload" href="/data.json" as="fetch" crossorigin="anonymous" />
+  </Fragment>
+
+  <section class="rf" aria-label="Recipe finder">
+    <p class="notice no-js-only"><Icon name="info" size={16} /><span>The recipe finder needs JavaScript to match your ingredients. You can still <a href="#browse">browse recipes by ingredient</a> below.</span></p>
+
+    <div class="panel rf-module js-only" id="pantry-module">
+      <div class="rf-kitchen rf-filled">
+        <p class="rf-kitchen__title" id="module-title">My kitchen</p>
+        <Button variant="secondary" size="sm" aria-haspopup="dialog" data-open-pantry>Edit</Button>
+        <p class="rf-kitchen__summary" id="module-summary"></p>
+      </div>
+      <form class="pantry__add" data-add novalidate>
+        <TextField id="add-m" label="Add an ingredient" placeholder="e.g. chicken, rice" autocomplete="off" list="rf-ingredients" enterkeyhint="done">
+          <Button slot="after" variant="primary" type="submit">Add</Button>
+        </TextField>
+        <InlineStatus id="add-m-status" class="pantry__status" />
+      </form>
+      <div class="rf-start rf-first">
+        <p class="label" id="start-m-label">Start with</p>
+        <div class="chips" role="group" aria-labelledby="start-m-label">{packs.map((p) => <Chip kind="action" label={p.name} data-pack={p.name} />)}</div>
+        <Button variant="secondary" block aria-haspopup="dialog" data-open-pantry>Browse all ingredients</Button>
+      </div>
+    </div>
+
+    <KitchenBar />
+
+    <div class="panel rf-col js-only" id="pantry-col">
+      <h2 class="rf-col__title" id="col-title">My kitchen</h2>
+      <PantryEditor />
+    </div>
+
+    <section class="rf-results" aria-labelledby="answer">
+      <div class="rf-pills js-only rf-filled">
+        <div class="chips">
+          <Chip kind="toggle" label="Missing one ingredient" id="missing-chip" />
+          <Chip kind="disclosure" label="Leave out" id="leave-chip" controls="leave-panel" />
+          <PillSelect id="meal" label="Meal" options={MEALS} />
+          <PillSelect id="diet" label="Diet" options={DIETS} />
+          <PillSelect id="cuisine" label="Cuisine" options={cuisines} />
+        </div>
+        <div class="rf-leave" id="leave-panel" hidden>
+          <form id="leave-form" novalidate>
+            <TextField id="leave" label="Leave out an ingredient" placeholder="e.g. mushroom" autocomplete="off" list="rf-ingredients" enterkeyhint="done">
+              <Button slot="after" variant="secondary" type="submit">Leave out</Button>
+            </TextField>
+            <InlineStatus id="leave-status" class="pantry__status" />
+          </form>
+          <ul class="tokens" id="leave-tokens" aria-label="Left out of the results"></ul>
+        </div>
+        <p class="status status--info" id="diet-note" hidden><Icon name="info" size={16} /><span>Diet filters check ingredient names. Check the source recipe for allergens and hidden ingredients like stock or gelatin.</span></p>
+      </div>
+
+      <div class="rf-answer" id="answer-box">
+        <span class="tile tile--md tile--neutral" id="answer-tile" aria-hidden="true" hidden></span>
+        <h2 class="rf-answer__title" id="answer" tabindex="-1"><span class="rf-first">Simple dishes to start with</span><span class="rf-filled" id="answer-text"></span></h2>
+        <p class="rf-answer__lede rf-first">Six favorites, six ingredients or fewer. Add yours to see what you can cook.</p>
+        <p class="empty__body" id="answer-body" hidden></p>
+        <div class="empty__actions" id="answer-actions" hidden></div>
+      </div>
+
+      <div class="rf-suggest" id="suggest-block" hidden>
+        <p class="label" id="suggest-label">Do you have any of these?</p>
+        <div class="chips" id="suggest" role="group" aria-labelledby="suggest-label"></div>
+        <p class="status rf-suggest__status" id="suggest-status" role="status"></p>
+      </div>
+
+      <Fragment set:html={SPRITE} />
+      <ul class="rgrid rf-first" id="picks" set:html={picks}></ul>
+      <ul class="rgrid rf-filled" id="grid">
+        {Array.from({ length: 6 }, () => (
+          <li aria-hidden="true"><span class="rcard"><span class="rcard__photo skeleton"></span><Skeleton width="80%" height="var(--lh-md)" radius="var(--r-sm)" /><Skeleton width="60%" height="var(--lh-sm)" radius="var(--r-sm)" /><Skeleton width="50%" height="var(--lh-sm)" radius="var(--r-sm)" /><Skeleton width="55%" height="var(--lh-sm)" radius="var(--r-sm)" /></span></li>
+        ))}
+      </ul>
+      <button class="btn btn--secondary rf-more" id="more" type="button" hidden>Show 12 more recipes</button>
+      <p class="rf-report" id="report" hidden>A recipe link doesn’t work? <a href="/contact/">Tell us</a>.</p>
+      <p class="sr-only" role="status" id="announce"></p>
+    </section>
+
+    <Sheet id="pantry-sheet" title="My kitchen">
+      <Fragment slot="foot"><Button variant="primary" block id="sheet-show">Show results</Button></Fragment>
+    </Sheet>
+    <datalist id="rf-ingredients"></datalist>
+    <script>
+      import '../components/recipes/pantry';
+    </script>
+  </section>
+
+  <Fragment slot="content">
+    <section class="section" aria-labelledby="browse">
+      <h2 id="browse">Browse recipes by ingredient</h2>
+      <ul class="chips">
+        {topIngredients(30).slice(0, 12).map((i) => (
+          <li><a class="chip chip--link" href={`/with/${slugify(i.key)}/`}><span class="chip__text">{upper(display(i.key))}<span class="chip__count num"><span class="sr-only">, </span>{i.count}<span class="sr-only"> recipes</span></span></span></a></li>
+        ))}
+      </ul>
+      <!-- The top 12 stay visible; the rest sit behind a disclosure so the section isn't a wall of chips (UI-REVIEW-final issue 3). -->
+      <Disclosure label="Show all 30 ingredients" class="browse-more">
+        <ul class="chips">{topIngredients(30).slice(12).map((i) => (
+          <li><a class="chip chip--link" href={`/with/${slugify(i.key)}/`}><span class="chip__text">{upper(display(i.key))}<span class="chip__count num"><span class="sr-only">, </span>{i.count}<span class="sr-only"> recipes</span></span></span></a></li>
+        ))}</ul>
+      </Disclosure>
+    </section>
+
+    <section class="section prose" aria-labelledby="how-it-works">
+      <h2 id="how-it-works">How the recipe finder works</h2>
+      <ol>
+        <li>We read each recipe’s ingredient list from TheMealDB, a free recipe database.</li>
+        <li>We tidy up the names, so “scallions” and “spring onions” both count as green onions.</li>
+        <li>We assume you have salt, pepper, oil and water.</li>
+        <li>A recipe is ready to cook when you have everything else it needs. When exactly one thing is missing, it appears under Missing one ingredient.</li>
+        <li>Recipes open on the site that published them. We never copy their instructions.</li>
+      </ol>
+      <!-- SourceList markup by hand: the second source has no link. -->
+      <div class="sources-block">
+        <h3>Sources</h3>
+        <ol class="sources">
+          <li><a href="https://www.themealdb.com/" target="_blank" rel="noopener">TheMealDB<span class="sr-only">, opens themealdb.com in a new tab</span><Icon name="external-link" size={16} /></a>. Recipe names, ingredient lists, photos and links.</li>
+          <li>The publisher named on each recipe card.</li>
+        </ol>
+        <p class="byline">Last updated <time datetime={UPDATED}>{updated}</time>.{SITE.editor && ` Reviewed by ${SITE.editor}.`}</p>
+      </div>
+    </section>
+
+    <AdSlot variant="inline" id="recipes-content-1" />
+
+    <section class="section" aria-labelledby="faq">
+      <h2 id="faq">Questions people ask</h2>
+      <div class="faq">
+        {faq.map(([q, a]) => (
+          <details class="disclosure">
+            <summary class="disclosure__summary"><span class="disclosure__label">{q}</span><Icon name="chevron-down" class="disclosure__chevron" /></summary>
+            <div class="disclosure__body"><p set:html={answerHtml(a)} /></div>
+          </details>
+        ))}
+      </div>
+    </section>
+  </Fragment>
+</ToolLayout>
